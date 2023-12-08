@@ -604,7 +604,7 @@ struct test {
   static constexpr auto run_impl(Test test, const none&) { test(); }
 
   template <class T>
-  static constexpr auto run_impl(T test, TArg& arg)
+  static constexpr auto run_impl(T test, const TArg& arg)
       -> decltype(test(arg), void()) {
     test(arg);
   }
@@ -2731,6 +2731,24 @@ template <class F, template <class...> class T, class... Ts,
                                              .tag = {},
                                              .location = {},
                                              .arg = args,
+                                             .run = f}),
+           ...);
+        },
+        t);
+  };
+}
+
+template <class F, template <class...> class T, class... Ts,
+          type_traits::requires_t<not type_traits::is_range_v<T<Ts...>>> = 0>
+[[nodiscard]] constexpr auto operator|(const F& f, T<Ts...>&& t) {
+  return [f, &t](auto name) {
+    apply(
+        [f, name](auto&&... args) {
+          (detail::on<F>(events::test<F, Ts>{.type = "test",
+                                             .name = name,
+                                             .tag = {},
+                                             .location = {},
+                                             .arg = std::move(args),
                                              .run = f}),
            ...);
         },
